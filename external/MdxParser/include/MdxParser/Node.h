@@ -12,6 +12,33 @@ namespace MdxParser
 	class Node
 	{
 	public:
+		enum class Flag : unsigned int {
+			isHelper = 0x0,
+			doNotInheritTranslation = 0x1,
+			doNotInheritScaling = 0x2,
+			doNotInheritRotation = 0x4,
+			billboarded = 0x8,
+			billboardedLockX = 0x10,
+			billboardedLockY = 0x20,
+			billboardedLockZ = 0x40,
+			cameraAnchored = 0x80,
+			isBone = 0x100,
+			isLight = 0x200,
+			isEventObject = 0x400,
+			isAttachment = 0x800,
+			isParticleEmitter = 0x1000,
+			isCollisionShape = 0x2000,
+			isRibbonEmitter = 0x4000,
+			emitterUsesMdl = 0x8000,
+			unshaded = 0x8000,
+			emitterUsesTga = 0x10000,
+			sortPrimitivesFarZ = 0x10000,
+			isLineEmitter = 0x20000,
+			unfogged = 0x40000,
+			modelSpace = 0x80000,
+			xyQuad = 0x100000,
+		};
+
 		Node();
 		Node(std::istream& stream, uint32_t version);
 
@@ -22,6 +49,7 @@ namespace MdxParser
 		std::string getName() const;
 		uint32_t getObjectId() const;
 		uint32_t getParentId() const;
+		bool getFlag(Flag flag) const;
 		uint32_t getFlags() const;
 		TracksChunk<translation>& getTranslation(); // KGTR
 		TracksChunk<quaternion>& getRotation(); // KGRT

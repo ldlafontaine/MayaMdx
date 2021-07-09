@@ -1,0 +1,26 @@
+global proc AEMdxLayerTemplate( string $nodeName )
+{
+	AEswatchDisplay $nodeName;
+
+	editorTemplate -beginScrollLayout;
+
+	editorTemplate -beginLayout "Layer Attributes" -collapse 0;
+		editorTemplate -addControl "filterMode";
+		editorTemplate -addControl "texture";
+		editorTemplate -addControl "textureAnimationId";
+		editorTemplate -addControl "coordId";
+		editorTemplate -addControl "alpha";
+	editorTemplate -endLayout;
+
+	editorTemplate -beginLayout "Flags" -collapse 0;
+		editorTemplate -addControl "unshaded";
+		editorTemplate -addControl "sphereEnvironmentMap";
+		editorTemplate -addControl "twoSided";
+		editorTemplate -addControl "unfogged";
+		editorTemplate -addControl "noDepthTest";
+		editorTemplate -addControl "noDepthSet";
+	editorTemplate -endLayout;
+
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

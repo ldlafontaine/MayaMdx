@@ -1,0 +1,20 @@
+global proc AEMdxTextureTemplate( string $nodeName )
+{
+	AEswatchDisplay $nodeName;
+
+	editorTemplate -beginScrollLayout;
+
+	editorTemplate -beginLayout "Texture Attributes" -collapse 0;
+		editorTemplate -addControl "fileName";
+		editorTemplate -addControl "replaceableId";
+		editorTemplate -dimControl "MdxTexture" "replaceableId" true;
+	editorTemplate -endLayout;
+
+	editorTemplate -beginLayout "Flags" -collapse 0;
+		editorTemplate -addControl "wrapWidth";
+		editorTemplate -addControl "wrapHeight";
+	editorTemplate -endLayout;
+
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

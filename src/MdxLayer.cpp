@@ -14,6 +14,8 @@ MObject MdxLayer::unfoggedAttr;
 MObject MdxLayer::noDepthTestAttr;
 MObject MdxLayer::noDepthSetAttr;
 MObject MdxLayer::textureAttr;
+MObject MdxLayer::textureAnimationIdAttr;
+MObject MdxLayer::coordIdAttr;
 MObject MdxLayer::alphaAttr;
 MObject MdxLayer::outColorAttr;
 
@@ -37,16 +39,17 @@ MStatus MdxLayer::initialize()
 	MFnNumericAttribute numericFn;
 
 	unshadedAttr = numericFn.create("unshaded", "us", MFnNumericData::Type::kBoolean);
-	numericFn.addToCategory("flags");
 	sphereEnvironmentMapAttr = numericFn.create("sphereEnvironmentMap", "sem", MFnNumericData::Type::kBoolean);
-	numericFn.addToCategory("flags");
 	twoSidedAttr = numericFn.create("twoSided", "ts", MFnNumericData::Type::kBoolean);
 	unfoggedAttr = numericFn.create("unfogged", "uf", MFnNumericData::Type::kBoolean);
 	noDepthTestAttr = numericFn.create("noDepthTest", "ndt", MFnNumericData::Type::kBoolean);
-	noDepthSetAttr = numericFn.create("noDepthSet", "nds", MFnNumericData::Type::kBoolean);
+	noDepthSetAttr = numericFn.create("noDepthSet", "ndst", MFnNumericData::Type::kBoolean);
 
 	textureAttr = numericFn.createColor("texture", "t");
 	numericFn.setStorable(true);
+
+	textureAnimationIdAttr = numericFn.create("textureAnimationId", "taid", MFnNumericData::Type::kInt);
+	coordIdAttr = numericFn.create("coordId", "cid", MFnNumericData::Type::kInt);
 
 	alphaAttr = numericFn.create("alpha", "a", MFnNumericData::Type::kFloat);
 	numericFn.setKeyable(true);
@@ -63,6 +66,8 @@ MStatus MdxLayer::initialize()
 	addAttribute(noDepthTestAttr);
 	addAttribute(noDepthSetAttr);
 	addAttribute(textureAttr);
+	addAttribute(textureAnimationIdAttr);
+	addAttribute(coordIdAttr);
 	addAttribute(alphaAttr);
 	addAttribute(outColorAttr);
 

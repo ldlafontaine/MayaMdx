@@ -38,7 +38,8 @@ private:
 	static MObject noDepthTestAttr;
 	static MObject noDepthSetAttr;
 	static MObject textureAttr;
-	static MObject textureAnimationAttr;
+	static MObject textureAnimationIdAttr;
+	static MObject coordIdAttr;
 	static MObject alphaAttr;
 	//static MObject emissiveGainAttr;
 	//static MObject fresnelColorAttr;

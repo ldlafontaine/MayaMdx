@@ -44,6 +44,10 @@ namespace MdxParser
         Extent getExtent() const;
         uint32_t getExtentsCount() const;
         std::vector<Extent> getSequenceExtents() const;
+        uint32_t getTangentsCount() const;
+        std::vector<std::array<float, 4>> getTangents() const;
+        uint32_t getSkinWeightsCount() const;
+        std::vector<uint8_t> getSkinWeights() const;
         uint32_t getTextureCoordinateSetsCount() const;
         std::vector<TextureCoordinateSet> getTextureCoordinateSets() const;
 
@@ -72,6 +76,8 @@ namespace MdxParser
         void setExtent(Extent extent);
         void setExtentsCount(uint32_t exentsCount);
         void setSequenceExtents(std::vector<Extent> sequenceExtents);
+        void setTangents(std::vector<std::array<float, 4>> tangents);
+        void setSkinWeights(std::vector<uint8_t> skinWeights);
         void setTextureCoordinateSetsCount(uint32_t textureCoordinateSetsCount);
         void setTextureCoordinateSets(std::vector<TextureCoordinateSet> textureCoordinateSets);
 
@@ -103,8 +109,8 @@ namespace MdxParser
         std::vector<Extent> sequenceExtents;
         uint32_t tangentsCount;
         std::vector<std::array<float, 4>> tangents;
-        uint32_t skinCount;
-        std::vector<uint8_t> skin;
+        uint32_t skinWeightsCount;
+        std::vector<uint8_t> skinWeights;
         uint32_t textureCoordinateSetsCount;
         std::vector<TextureCoordinateSet> textureCoordinateSets;
     };

@@ -23,16 +23,27 @@ void MaterialTranslator::createDependencyNode() {
 	MFnDependencyNode dependFn;
 	MDGModifier dgModifier;
 
-	// Create shader and find plugs
+	// Create shader and find plugs.
 	dependencyNode = dependFn.create(MdxStandardShader::nodeTypeId);
 	MPlug materialOutColorPlug{ dependFn.findPlug("outColor", true) };
+	MString dependencyNodeName{ dependFn.name() };
 
-	// Create shading group and find plugs
-	shadingEngineDependencyNode = dependFn.create("shadingEngine");
+	readAttributesFromParser();
+
+	// Create shading group and find plugs.
+	shadingEngineDependencyNode = dependFn.create("shadingEngine", { dependencyNodeName + "SG" });
 	MPlug surfaceShaderPlug{ dependFn.findPlug("surfaceShader", true) };
 
-	// Connect shader to shading engine
+	// Connect shader to shading engine.
 	dgModifier.connect(materialOutColorPlug, surfaceShaderPlug);
+}
+
+void MaterialTranslator::readAttributesFromParser() {
+	MFnDependencyNode dependFn{ dependencyNode };
+	MPlug materialPriorityPlanePlug{ dependFn.findPlug("priorityPlane", true) };
+	materialPriorityPlanePlug.setInt(parserMaterial.getPriorityPlane());
+	MPlug materialShaderPlug{ dependFn.findPlug("shader", true) };
+	materialShaderPlug.setString(parserMaterial.getShader().c_str());
 }
 
 void MaterialTranslator::readLayersFromParser(std::map<uint32_t, MObject>& textureIdMap) {
@@ -49,6 +60,12 @@ void MaterialTranslator::readLayersFromParser(std::map<uint32_t, MObject>& textu
 		// Set layer attributes.
 		MPlug layerFilterModePlug{ dependFn.findPlug("filterMode", true) };
 		layerFilterModePlug.setInt(layer.getFilterMode());
+		/*
+		MPlug layerTextureAnimationIdPlug{ dependFn.findPlug("textureAnimationId", true) };
+		layerTextureAnimationIdPlug.setInt(layer.getTextureAnimationId());
+		MPlug layerCoordIdPlug{ dependFn.findPlug("coordId", true) };
+		layerCoordIdPlug.setInt(layer.getCoordId());
+		*/
 
 		// Set layer texture.
 		MPlug layerTexturePlug{ dependFn.findPlug("texture", true) };

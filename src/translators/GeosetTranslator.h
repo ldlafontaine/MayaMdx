@@ -27,4 +27,6 @@ public:
 
 protected:
 	MdxParser::Geoset parserGeoset;
+
+	MObject createSkinCluster(std::vector<MObject>& influenceObjects);
 };

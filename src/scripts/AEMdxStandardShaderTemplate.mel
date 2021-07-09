@@ -1,0 +1,22 @@
+global proc AEMdxStandardShaderTemplate( string $nodeName )
+{
+	AEswatchDisplay $nodeName;
+
+	editorTemplate -beginScrollLayout;
+
+	editorTemplate -beginLayout "Common Material Attributes" -collapse 0;
+		editorTemplate -addControl "priorityPlane";
+		editorTemplate -addControl "shader";
+	editorTemplate -endLayout;
+
+	editorTemplate -beginLayout "Flags" -collapse 0;
+		editorTemplate -addControl "constantColor";
+		editorTemplate -addControl "sortPrimitivesFarZ";
+		editorTemplate -addControl "fullResolution";
+	editorTemplate -endLayout;
+
+	editorTemplate -addControl "layers";
+
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

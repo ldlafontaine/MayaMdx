@@ -16,6 +16,7 @@ public:
 	MdxParser::Material getParserMaterial() const;
 
 	void createDependencyNode();
+	void readAttributesFromParser();
 	void readLayersFromParser(std::map<uint32_t, MObject>& textureIdMap);
 
 	void writeAttributesToParser();

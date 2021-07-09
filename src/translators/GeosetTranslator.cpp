@@ -94,21 +94,17 @@ MObject GeosetTranslator::createDependencyNode(MObject root) {
 	return dependencyNode;
 }
 
-void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> nodeTranslators) {
-	MFnDagNode geosetDagFn{ dependencyNode };
-
-	std::vector<uint32_t> matrixIndices{ parserGeoset.getMatrixIndices() };
-	std::set<uint32_t> matrixIndicesSet{ matrixIndices.begin(), matrixIndices.end() };
-	std::vector<uint32_t> uniqueMatrixIndices{ matrixIndicesSet.begin(), matrixIndicesSet.end() };
+MObject GeosetTranslator::createSkinCluster(std::vector<MObject>& influenceObjects) {
+	MStatus status;
+	MFnDagNode dagFn{ dependencyNode };
 
 	// Create a skin cluster for each polygon object, using the bones corresponding to the geoset's matrix indices as influences.
 	std::stringstream command;
-	command << "skinCluster " << "-toSelectedBones -rbm " << geosetDagFn.fullPathName();
+	command << "skinCluster " << "-toSelectedBones -rbm " << dagFn.fullPathName();
 
-	for (uint32_t matrixIndex : uniqueMatrixIndices) {
-		MObject boneDagNode = nodeTranslators.at(matrixIndex).getDependencyNode();
-		MFnDagNode boneDagFn(boneDagNode);
-		command << " " << boneDagFn.fullPathName();
+	for (auto influenceObjectsIter = influenceObjects.begin(); influenceObjectsIter != influenceObjects.end(); ++influenceObjectsIter) {
+		status = dagFn.setObject(*influenceObjectsIter);
+		if (status == MStatus::kSuccess) command << " " << dagFn.fullPathName();
 	}
 
 	MCommandResult result;
@@ -122,7 +118,6 @@ void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> node
 	selectionList.add(skinClusterName);
 	MObject skinCluster;
 	selectionList.getDependNode(0, skinCluster);
-	MFnDependencyNode skinDependFn{ skinCluster };
 
 	// Remove bind poses.
 	MItDependencyGraph graphIter{ skinCluster, MFn::Type::kDagPose, MItDependencyGraph::kUpstream, MItDependencyGraph::kDepthFirst };
@@ -131,34 +126,85 @@ void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> node
 		MGlobal::deleteNode(bindPose);
 	}
 
-	// Weight vertices.
-	std::vector<uint8_t> vertexGroups{ parserGeoset.getVertexGroups() };
-	std::set<uint8_t> uniqueVertexGroups{ vertexGroups.begin(), vertexGroups.end() };
+	return skinCluster;
+}
 
-	MPlug weightListPlug{ skinDependFn.findPlug("weightList", true) };
-	for (unsigned int vertexIndex{ 0 }; vertexIndex < weightListPlug.numElements(); vertexIndex++) {
-		MPlug weightListPlugElement{ weightListPlug.elementByLogicalIndex(vertexIndex) }; // Represents a vertex. One such element exists for each vertex.
-		MPlug weightsPlug{ weightListPlugElement.child(0) };
+void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> nodeTranslators) {
+	MStatus status;
 
-		uint32_t vertexGroup{ parserGeoset.getVertexGroups().at(vertexIndex) };
-
-		uint32_t actualMatrixIndex{ 0 };
-		for (unsigned int matrixGroupIter{ 0 }; matrixGroupIter < vertexGroup; matrixGroupIter++) {
-			actualMatrixIndex += parserGeoset.getMatrixGroups().at(matrixGroupIter);
+	if (parserGeoset.getSkinWeightsCount() > 0) {
+		// Use all bone dependency nodes to create a skin cluster.
+		std::vector<MObject> influenceObjects;
+		for (auto nodeTranslatorsIter = nodeTranslators.begin(); nodeTranslatorsIter != nodeTranslators.end(); ++nodeTranslatorsIter) {
+			influenceObjects.push_back(nodeTranslatorsIter->getDependencyNode());
 		}
 
-		uint32_t validMatrixIndex{ matrixIndices.at(actualMatrixIndex) };
+		MObject skinCluster{ createSkinCluster(influenceObjects) };
+		MFnDependencyNode skinDependFn{ skinCluster };
 
-		for (unsigned int influenceIndex{ 0 }; influenceIndex < uniqueMatrixIndices.size(); influenceIndex++) {
-			MPlug weightsElement{ weightsPlug.elementByLogicalIndex(influenceIndex) }; // Represents an influence object. One such element exists for each influence associated with this object.
+		// Set skin weights.
+		std::vector<uint8_t> skinWeights{ parserGeoset.getSkinWeights() };
 
-			uint32_t influenceMatrixIndex{ uniqueMatrixIndices.at(influenceIndex) };
+		MPlug weightListPlug{ skinDependFn.findPlug("weightList", true) };
+		for (unsigned int vertexIndex{ 0 }; vertexIndex < weightListPlug.numElements(); ++vertexIndex) {
+			MPlug weightListPlugElement{ weightListPlug.elementByLogicalIndex(vertexIndex) }; // Represents a vertex. One such element exists for each vertex.
+			MPlug weightsPlug{ weightListPlugElement.child(0) };
 
-			if (influenceMatrixIndex == validMatrixIndex) {
-				weightsElement.setValue(1.0);
+			// Skin weights are represented as a vector of 8 bit integers, separated into groups of 8. Each group of 8 begins with 4 bone indices and is followed by 4 weight values.
+			// One such group should exist per vertex.
+			unsigned int vertexWeightsBegin{ vertexIndex * 8 };
+			for (unsigned int vertexWeightsIter{ 0 }; vertexWeightsIter < 4; ++vertexWeightsIter) {
+				uint8_t influenceIndex{ skinWeights.at(vertexWeightsBegin + vertexWeightsIter) };
+				uint8_t influenceWeight{ skinWeights.at(vertexWeightsBegin + vertexWeightsIter + 4) };
+				MPlug weightsElement{ weightsPlug.elementByLogicalIndex(influenceIndex, &status) };
+				if (status == MStatus::kSuccess) weightsElement.setValue(1.0);
 			}
-			else {
-				weightsElement.setValue(0.0);
+		}
+	}
+	else {
+		// Read matrices from parser.
+		std::vector<uint32_t> matrixIndices{ parserGeoset.getMatrixIndices() };
+		std::set<uint32_t> matrixIndicesSet{ matrixIndices.begin(), matrixIndices.end() };
+		std::vector<uint32_t> uniqueMatrixIndices{ matrixIndicesSet.begin(), matrixIndicesSet.end() };
+
+		// Find nodes corresponding to the geoset's matrix indices and use those to create a skin cluster.
+		std::vector<MObject> influenceObjects;
+		for (uint32_t matrixIndex : uniqueMatrixIndices) {
+			influenceObjects.push_back(nodeTranslators.at(matrixIndex).getDependencyNode());
+		}
+
+		MObject skinCluster{ createSkinCluster(influenceObjects) };
+		MFnDependencyNode skinDependFn{ skinCluster };
+
+		// Set skin weights.
+		std::vector<uint8_t> vertexGroups{ parserGeoset.getVertexGroups() };
+		std::set<uint8_t> uniqueVertexGroups{ vertexGroups.begin(), vertexGroups.end() };
+
+		MPlug weightListPlug{ skinDependFn.findPlug("weightList", true) };
+		for (unsigned int vertexIndex{ 0 }; vertexIndex < weightListPlug.numElements(); ++vertexIndex) {
+			MPlug weightListPlugElement{ weightListPlug.elementByLogicalIndex(vertexIndex) }; // Represents a vertex. One such element exists for each vertex.
+			MPlug weightsPlug{ weightListPlugElement.child(0) };
+
+			uint32_t vertexGroup{ parserGeoset.getVertexGroups().at(vertexIndex) };
+
+			uint32_t actualMatrixIndex{ 0 };
+			for (unsigned int matrixGroupIter{ 0 }; matrixGroupIter < vertexGroup; ++matrixGroupIter) {
+				actualMatrixIndex += parserGeoset.getMatrixGroups().at(matrixGroupIter);
+			}
+
+			uint32_t validMatrixIndex{ matrixIndices.at(actualMatrixIndex) };
+
+			for (unsigned int influenceIndex{ 0 }; influenceIndex < uniqueMatrixIndices.size(); ++influenceIndex) {
+				MPlug weightsElement{ weightsPlug.elementByLogicalIndex(influenceIndex) }; // Represents an influence object. One such element exists for each influence associated with this object.
+
+				uint32_t influenceMatrixIndex{ uniqueMatrixIndices.at(influenceIndex) };
+
+				if (influenceMatrixIndex == validMatrixIndex) {
+					weightsElement.setValue(1.0);
+				}
+				else {
+					weightsElement.setValue(0.0);
+				}
 			}
 		}
 	}
