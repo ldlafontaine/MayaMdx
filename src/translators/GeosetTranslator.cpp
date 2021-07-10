@@ -150,14 +150,27 @@ void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> node
 			MPlug weightListPlugElement{ weightListPlug.elementByLogicalIndex(vertexIndex) }; // Represents a vertex. One such element exists for each vertex.
 			MPlug weightsPlug{ weightListPlugElement.child(0) };
 
+			// All weights are set to zero initially to provide a clean starting point.
+			weightsPlug.setValue(0.0);
+
 			// Skin weights are represented as a vector of 8 bit integers, separated into groups of 8. Each group of 8 begins with 4 bone indices and is followed by 4 weight values.
 			// One such group should exist per vertex.
-			unsigned int vertexWeightsBegin{ vertexIndex * 8 };
+
+			// Extract the bone indices and weights and insert them into a set in order to discard any duplicate bone indices.
+			std::set<std::pair<uint8_t, uint8_t>> influences;
+			unsigned int vertexWeightsPos{ vertexIndex * 8 };
 			for (unsigned int vertexWeightsIter{ 0 }; vertexWeightsIter < 4; ++vertexWeightsIter) {
-				uint8_t influenceIndex{ skinWeights.at(vertexWeightsBegin + vertexWeightsIter) };
-				uint8_t influenceWeight{ skinWeights.at(vertexWeightsBegin + vertexWeightsIter + 4) };
-				MPlug weightsElement{ weightsPlug.elementByLogicalIndex(influenceIndex, &status) };
-				if (status == MStatus::kSuccess) weightsElement.setValue(1.0);
+				unsigned int influenceIndexPos{ vertexWeightsPos + vertexWeightsIter };
+				unsigned int influenceWeightPos{ vertexWeightsPos + vertexWeightsIter + 4 };
+				uint8_t influenceIndex{ skinWeights.at(influenceIndexPos) };
+				uint8_t influenceWeight{ skinWeights.at(influenceWeightPos) };
+				influences.insert({ influenceIndex, influenceWeight });
+			}
+
+			// Assign the weights to the corresponding indices.
+			for (auto influence : influences) {
+				MPlug weightsElement{ weightsPlug.elementByLogicalIndex(influence.first, &status) };
+				if (status == MStatus::kSuccess) weightsElement.setDouble(static_cast<double>(influence.second) / 255.0);
 			}
 		}
 	}
@@ -200,10 +213,10 @@ void GeosetTranslator::readInfluencesFromParser(std::vector<NodeTranslator> node
 				uint32_t influenceMatrixIndex{ uniqueMatrixIndices.at(influenceIndex) };
 
 				if (influenceMatrixIndex == validMatrixIndex) {
-					weightsElement.setValue(1.0);
+					weightsElement.setDouble(1.0);
 				}
 				else {
-					weightsElement.setValue(0.0);
+					weightsElement.setDouble(0.0);
 				}
 			}
 		}
